@@ -21,6 +21,18 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS attempts(k TEXT,t INTEGER)',
   'CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT)'
 ];
+const VERSION = '2026-11-22-dedupe-v2';
+const dedupe = async () => {
+  const before = (await one('SELECT COUNT(*) AS n FROM products')).n;
+  const cols = ['p10', 'p30', 'p50', 'p100'].map(k => k + '=COALESCE(' + k + ',(SELECT MAX(p.' + k + ') FROM products p WHERE p.name=products.name AND p.gender=products.gender))').join(',');
+  await db.batch([
+    'UPDATE products SET ' + cols + ',image=COALESCE(image,(SELECT p.image FROM products p WHERE p.name=products.name AND p.gender=products.gender AND p.image IS NOT NULL LIMIT 1)) WHERE id IN (SELECT MIN(id) FROM products GROUP BY name,gender HAVING COUNT(*)>1)',
+    'DELETE FROM products WHERE id NOT IN (SELECT MIN(id) FROM products GROUP BY name,gender)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_products_name_gender ON products(name,gender)'
+  ], 'write');
+  const after = (await one('SELECT COUNT(*) AS n FROM products')).n;
+  return { before, after, removed: before - after };
+};
 let ready;
 const init = () => ready || (ready = (async () => {
   db = createClient({ url: process.env.TURSO_DATABASE_URL, authToken: process.env.TURSO_AUTH_TOKEN });
@@ -28,9 +40,10 @@ const init = () => ready || (ready = (async () => {
   // ترقية قواعد بيانات قديمة: لو عمود 100 مل اتضاف لأول مرة، ننقل الأسعار للعطور اللي لسه من غير أسعار
   try { await run('ALTER TABLE products ADD COLUMN p100 INTEGER'); await db.batch(require('../seed.json').filter(p => p.p10).map(p => ({ sql: 'UPDATE products SET p10=?,p30=?,p50=?,p100=? WHERE name=? AND p10 IS NULL AND p30 IS NULL AND p50 IS NULL', args: [p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.name] })), 'write'); } catch (e) { /* العمود موجود */ }
   for (const m of ["ALTER TABLE products ADD COLUMN cat TEXT DEFAULT 'perfume'", 'ALTER TABLE orders ADD COLUMN notes TEXT']) { try { await run(m); } catch (e) { /* موجود */ } }
+  await dedupe().catch(e => console.error('dedupe', e));
   const ph = process.env.ADMIN_PHONE || '01284993980', pw = process.env.ADMIN_PASSWORD || 'HODA';
   if (!(await one('SELECT 1 AS x FROM users WHERE phone=?', [ph]))) await run("INSERT OR IGNORE INTO users(name,phone,pass,role) VALUES('الأدمن',?,?,'admin')", [ph, hash(pw)]);
-  if (!(await one('SELECT 1 AS x FROM products'))) await db.batch(require('../seed.json').map(p => ({ sql: 'INSERT INTO products(name,section,gender,p10,p30,p50,p100,image) VALUES(?,?,?,?,?,?,?,?)', args: [p.name, p.section, p.gender, p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.image || null] })), 'write');
+  if (!(await one('SELECT 1 AS x FROM products'))) await db.batch(require('../seed.json').map(p => ({ sql: 'INSERT OR IGNORE INTO products(name,section,gender,p10,p30,p50,p100,image) VALUES(?,?,?,?,?,?,?,?)', args: [p.name, p.section, p.gender, p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.image || null] })), 'write');
   // صور العطور الجاهزة: بتتحط بس للعطور اللي لسه من غير صورة
   const withImg = require('../seed.json').filter(p => p.image);
   if (withImg.length) {
@@ -87,7 +100,7 @@ on('GET', '/api/me', 0, async (req, res) => {
   const u = await who(req); if (!u) return J(res, 200, { user: null });
   J(res, 200, { user: u, orders: await q('SELECT code,total,status,created FROM orders WHERE user_id=? ORDER BY id DESC LIMIT 20', [u.id]) });
 });
-on('GET', '/api/products', 0, async (req, res) => J(res, 200, await q('SELECT id,name,section,gender,cat,p10,p30,p50,p100,image IS NOT NULL AS img FROM products WHERE active=1 ORDER BY id')));
+on('GET', '/api/products', 0, async (req, res) => J(res, 200, await q('SELECT id,name,section,gender,cat,p10,p30,p50,p100,image IS NOT NULL AS img FROM products WHERE active=1 AND id IN (SELECT MIN(id) FROM products GROUP BY name,gender) ORDER BY id')));
 on('GET', '/img/(\\d+)', 0, async (req, res, b, m) => {
   const r = await one('SELECT image FROM products WHERE id=?', [+m[1]]);
   const x = r && r.image && /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(r.image);
@@ -173,7 +186,7 @@ on('POST', '/api/admin/product', 1, async (req, res, b) => {
   try {
     if (b.id) { await run('UPDATE products SET name=?,section=?,gender=?,cat=?,p10=?,p30=?,p50=?,p100=?,active=? WHERE id=?', [name, b.section, b.gender, b.cat, n(b.p10), n(b.p30), n(b.p50), n(b.p100), b.active ? 1 : 0, +b.id]); if (img) await run('UPDATE products SET image=? WHERE id=?', [img, +b.id]); }
     else await run('INSERT INTO products(name,section,gender,cat,p10,p30,p50,p100,image) VALUES(?,?,?,?,?,?,?,?,?)', [name, b.section, b.gender, b.cat, n(b.p10), n(b.p30), n(b.p50), n(b.p100), img]);
-  } catch (e) { return J(res, 409, { error: 'حصلت مشكلة في الحفظ' }); }
+  } catch (e) { return J(res, 409, { error: 'العطر ده موجود قبل كده بنفس الاسم والفئة' }); }
   J(res, 200, { ok: 1 });
 });
 on('POST', '/api/admin/product-del', 1, async (req, res, b) => { await run('DELETE FROM products WHERE id=?', [+b.id]); J(res, 200, { ok: 1 }); });
@@ -234,6 +247,11 @@ on('POST', '/api/admin/points-all', 1, async (req, res, b) => {
   if (!us.length) return J(res, 400, { error: 'مفيش عملاء' });
   await db.batch(us.flatMap(u => [{ sql: 'UPDATE users SET points=points+? WHERE id=?', args: [d, u.id] }, { sql: 'INSERT INTO plog(user_id,delta,note) VALUES(?,?,?)', args: [u.id, d, note] }]), 'write');
   J(res, 200, { ok: 1, count: us.length });
+});
+
+on('GET', '/api/version', 0, async (req, res) => J(res, 200, { v: VERSION }));
+on('POST', '/api/admin/dedupe', 1, async (req, res) => {
+  try { J(res, 200, { ok: 1, ...(await dedupe()) }); } catch (e) { console.error('dedupe', e); J(res, 500, { error: 'فشل التنظيف: ' + String(e.message || e).slice(0, 160) }); }
 });
 
 module.exports = async (req, res) => {

@@ -102,7 +102,11 @@ async function products(){
    const del=el('button','bad','حذف');arm(del,'تأكيد الحذف',async()=>{await api('/api/admin/product-del',{id:p.id});ps=ps.filter(x=>x.id!=p.id);draw()});
    acts.append(sv,ed,del);return [wrap,p.name+'\n'+(p.section=='niche'?'نيش':'ديزاينر')+' — '+L[p.gender],pr,cb,acts]})));
   list.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')};
- v.append(m,f,bk,el('h3','','كل العطور'),bar,cnt,list);draw()}
+ const st=el('div','panel'),vs=el('p','mut'),dd=el('button','','تنظيف العطور المكررة');dd.type='button';
+ api('/api/version').then(j=>{vs.textContent='نسخة الموقع: '+j.v}).catch(()=>{vs.textContent='نسخة الموقع: قديمة (ارفع آخر نسخة)'});
+ dd.onclick=async()=>{try{const r=await api('/api/admin/dedupe',{});m.textContent='قبل: '+r.before+' عطر، بعد: '+r.after+' (اتمسح '+r.removed+' مكرر)';ps=await api('/api/admin/products');draw()}catch(x){m.textContent=x.message}};
+ st.append(vs,dd);
+ v.append(m,st,f,bk,el('h3','','كل العطور'),bar,cnt,list);draw()}
 async function settings(){
  const v=$('v'),m=msgEl(),s=await api('/api/admin/settings'),f=el('form','panel');
  f.append(el('h3','','إعدادات التواصل والدفع'),el('p','mut','الأرقام دي بتظهر في الموقع وفي رسالة الطلب وتعليمات الدفع.'),fld('رقم واتساب المتجر (بصيغة دولية: 201XXXXXXXXX)','wa'),fld('رقم الهاتف للاتصال','phone'),fld('رقم المحفظة الإلكترونية','wallet'),fld('حساب إنستا باي','insta'));

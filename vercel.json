@@ -1,0 +1,8 @@
+{
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js?r=/api/$1" },
+    { "source": "/img/(.*)", "destination": "/api/index.js?r=/img/$1" },
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
+}

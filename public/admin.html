@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex"><title>لوحة الأدمن — MA Professional Perfume</title><link rel="icon" href="logo-mark.png">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head><body>
+<div id="lg" class="wrap" style="max-width:420px;padding-top:12vh"><div class="panel"><h2>دخول الأدمن</h2>
+<form id="lf"><label>رقم الموبايل<input name="phone" inputmode="numeric" required></label>
+<label>كلمة السر<input name="password" type="password" required></label><p id="le" class="bad"></p><button class="gold" type="submit">دخول</button></form></div></div>
+<div id="app" hidden>
+<header><div class="wrap bar"><span class="logo">لوحة الأدمن</span><div class="row"><a class="btn" href="index.html">المتجر</a><button id="out">خروج</button></div></div></header>
+<main class="wrap"><div class="tabs" id="tb"></div><div id="v"></div></main></div>
+<script>
+const $=i=>document.getElementById(i),ST={new:'جديد',confirmed:'اتأكد',shipped:'خرج للتوصيل',delivered:'اتسلّم',cancelled:'ملغي'},PAY={cod:'عند الاستلام',wallet:'محفظة',insta:'انستا باي'},L={m:'رجالي',f:'حريمي',u:'يونيسكس'};
+const api=(u,b)=>fetch(u,b?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}:{}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'حصلت مشكلة');return j}).catch(e=>{throw e instanceof TypeError?new Error('مش قادر أوصل للسيرفر. الدخول والطلبات بيشتغلوا بعد نشر الموقع.'):e});
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const fld=(lbl,n,type='text',extra={})=>{const l=el('label','',lbl),i=el('input');i.name=n;i.type=type;Object.assign(i,extra);l.appendChild(i);return l};
+const table=(h,rows)=>{const w=el('div','scroll'),t=el('table'),tr=el('tr');h.forEach(x=>tr.appendChild(el('th','',x)));t.appendChild(tr);
+ rows.forEach(r=>{const q=el('tr');r.forEach(c=>{const d=el('td');c instanceof Node?d.appendChild(c):d.textContent=c;q.appendChild(d)});t.appendChild(q)});w.appendChild(t);return w};
+const TABS={orders,stats,customers,bonus,products,settings,account};const NAMES={orders:'الطلبات',stats:'جرد المبيعات',customers:'العملاء',bonus:'البونص والأكواد',products:'المنتجات والأسعار',settings:'إعدادات الموقع',account:'حسابي'};
+function show(k){document.querySelectorAll('#tb button').forEach(b=>b.className=b.dataset.k==k?'on':'');$('v').innerHTML='';TABS[k]().catch(e=>$('v').textContent=e.message)}
+async function boot(){try{const j=await api('/api/me');if(!j.user||j.user.role!='admin')throw 0;$('lg').hidden=true;$('app').hidden=false;
+ const tb=$('tb');tb.innerHTML='';Object.keys(NAMES).forEach(k=>{const b=el('button','',NAMES[k]);b.dataset.k=k;b.onclick=()=>show(k);tb.appendChild(b)});show('orders')}catch(e){location.replace('index.html#admin')}}
+$('lf').onsubmit=async e=>{e.preventDefault();const f=e.target;try{await api('/api/login',{phone:f.phone.value,password:f.password.value,admin:1});boot()}catch(x){$('le').textContent=x.message}};
+$('out').onclick=async()=>{await api('/api/logout',{});location.href='index.html'};
+async function orders(){const os=await api('/api/admin/orders'),v=$('v');
+ v.appendChild(table(['الطلب','العميل','التفاصيل','الإجمالي','الدفع','الحالة'],os.map(o=>{
+  const s=el('select');Object.entries(ST).forEach(([k,n])=>s.add(new Option(n,k,0,k==o.status)));s.disabled=o.status=='cancelled';
+  s.onchange=async()=>{try{await api('/api/admin/status',{id:o.id,status:s.value})}catch(x){alert(x.message);show('orders')}};
+  return [o.code+'\n'+o.created.slice(0,16),o.name+'\n'+o.phone+' / واتساب '+o.wa+'\n'+o.gov+' — '+o.addr+(o.notes?'\nملاحظات: '+o.notes:''),o.items.map(i=>i.name+(i.size?' '+i.size+' مل':'')+' ×'+i.q).join('\n'),o.total+' ج.م'+(o.discount?'\n(خصم '+o.discount+')':''),PAY[o.pay],s]})));
+ v.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')}
+async function stats(){const v=$('v'),sel=el('select');[7,30,90,365].forEach(d=>sel.add(new Option('آخر '+d+' يوم',d,0,d==30)));
+ const box=el('div'),go=async()=>{const s=await api('/api/admin/stats?days='+sel.value);box.innerHTML='';const k=el('div','kp');
+  [['عدد الطلبات',s.orders],['المبيعات',s.sales+' ج.م'],['المُسلَّم فعلًا',s.delivered+' ج.م'],['متوسط الطلب',s.avg+' ج.م'],['طلبات ملغية',s.cancelled],['خصومات وبونص',s.discounts+' ج.م']].forEach(([a,b])=>{const d=el('div');d.append(a,el('b','',b));k.appendChild(d)});
+  const days=[...Array(+sel.value).keys()].reverse().map(i=>new Date(Date.now()-i*864e5).toISOString().slice(0,10)).slice(-60),mx=Math.max(1,...days.map(d=>s.daily[d]||0)),bars=el('div','bars');
+  days.forEach(d=>{const i=el('i');i.style.height=((s.daily[d]||0)/mx*100)+'%';i.title=d+': '+(s.daily[d]||0)+' ج.م';bars.appendChild(i)});
+  const p=el('div','panel');p.append(el('h3','','المبيعات اليومية'),bars);const t=el('div','panel');t.append(el('h3','','أكثر العطور مبيعًا'),table(['العطر','الكمية','المبيعات'],s.top.map(x=>[x.name,x.qty,x.sales+' ج.م'])));
+  const csv=el('button','','تصدير CSV');csv.onclick=async()=>{const os=await api('/api/admin/orders'),r=[['الطلب','التاريخ','الاسم','الموبايل','المحافظة','الإجمالي','الخصم','الدفع','الحالة'],...os.map(o=>[o.code,o.created,o.name,o.phone,o.gov,o.total,o.discount,PAY[o.pay],ST[o.status]])];
+   const a=el('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+r.map(x=>x.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv'}));a.download='orders.csv';a.click()};
+  box.append(k,p,t,csv)};sel.onchange=go;v.append(sel,box);go()}
+const shrink=(f,m=700)=>new Promise(ok=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,m/Math.max(i.width,i.height)),c=el('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};i.src=r.result};r.readAsDataURL(f)});
+const msgEl=()=>{const m=el('p');m.id='msg';return m};
+const arm=(b,txt,fn)=>{const o=b.textContent;b.onclick=()=>{if(b.dataset.s){delete b.dataset.s;b.textContent=o;fn()}else{b.dataset.s=1;b.textContent=txt;setTimeout(()=>{delete b.dataset.s;b.textContent=o},4000)}}};
+async function customers(){
+ const v=$('v'),m=msgEl(),det=el('div'),qs=el('input'),list=el('div');let cs=await api('/api/admin/customers');qs.placeholder='ابحث بالاسم أو الموبايل...';
+ const open=async id=>{
+  det.innerHTML='';const j=await api('/api/admin/customer?id='+id),p=el('div','panel'),f=el('form');
+  f.append(fld('نقاط (اكتب رقم سالب للخصم)','delta','number'),fld('ملاحظة','note'));const b=el('button','gold','تنفيذ');b.type='submit';f.appendChild(b);
+  f.onsubmit=async e=>{e.preventDefault();try{await api('/api/admin/points',{phone:j.user.phone,delta:+f.elements.delta.value,note:f.elements.note.value});m.textContent='تم تعديل النقاط';cs=await api('/api/admin/customers');draw();open(id)}catch(x){m.textContent=x.message}};
+  p.append(el('h3','',j.user.name+' — '+j.user.phone),el('p','','رصيد النقاط: '+j.user.points+' (1 نقطة = 1 جنيه)'),f,el('h3','','حركات النقاط'),table(['النقاط','ملاحظة','التاريخ'],j.log.map(x=>[(x.delta>0?'+':'')+x.delta,x.note||'',x.created.slice(0,16)])),el('h3','','طلباته'),table(['الطلب','الإجمالي','الحالة','التاريخ'],j.orders.map(o=>[o.code,o.total+' ج.م',ST[o.status]||o.status,o.created.slice(0,10)])));
+  det.appendChild(p);p.scrollIntoView({block:'nearest'})};
+ const draw=()=>{const t=qs.value.trim(),rows=cs.filter(c=>!t||c.name.includes(t)||c.phone.includes(t));list.innerHTML='';
+  list.appendChild(table(['الاسم','الموبايل','النقاط','الطلبات','التسجيل',''],rows.map(c=>{const b=el('button','','فتح');b.onclick=()=>open(c.id);return [c.name,c.phone,c.points,c.orders,c.created.slice(0,10),b]})))};
+ qs.oninput=draw;v.append(m,qs,det,list);draw()}
+async function bonus(){
+ const v=$('v'),m=msgEl(),cs=await api('/api/admin/customers'),dl=el('datalist');dl.id='cdl';cs.forEach(c=>{const o=el('option');o.value=c.phone;o.label=c.name;dl.appendChild(o)});
+ const a=el('form','panel'),ph=fld('رقم العميل (اكتب أو اختار من القايمة)','phone');ph.querySelector('input').setAttribute('list','cdl');
+ a.append(el('h3','','إرسال نقاط بونص لعميل'),el('p','mut','1 نقطة = 1 جنيه خصم. اكتب رقم سالب لخصم نقاط.'),ph,fld('عدد النقاط','delta','number'),fld('ملاحظة (بتظهر في حركات العميل)','note'));
+ const s1=el('button','gold','إرسال النقاط');s1.type='submit';a.appendChild(s1);
+ a.onsubmit=async e=>{e.preventDefault();try{const j=await api('/api/admin/points',{phone:a.elements.phone.value,delta:+a.elements.delta.value,note:a.elements.note.value});m.textContent='تم. رصيد العميل: '+j.points;a.reset();loadLog()}catch(x){m.textContent=x.message}};
+ const al=el('form','panel');al.append(el('h3','','إرسال نقاط لكل العملاء'),el('p','mut','مناسب للمناسبات والعروض. بيتبعت لكل العملاء المسجّلين ('+cs.length+' عميل).'),fld('عدد النقاط لكل عميل','delta','number'),fld('ملاحظة','note'));
+ const s2=el('button','gold','إرسال للكل');s2.type='button';al.appendChild(s2);
+ arm(s2,'اضغط تاني للتأكيد',async()=>{try{const j=await api('/api/admin/points-all',{delta:+al.elements.delta.value,note:al.elements.note.value});m.textContent='اتبعتت لـ '+j.count+' عميل';al.reset();loadLog()}catch(x){m.textContent=x.message}});
+ const b=el('form','panel');b.append(el('h3','','إنشاء كود خصم'),el('p','mut','سيب رقم العميل فاضي لو الكود عام لأي حد.'),fld('قيمة الخصم (ج.م)','value','number'),fld('عدد مرات الاستخدام','uses','number',{value:1}),fld('صلاحية بالأيام (اختياري)','days','number'),fld('خاص بعميل (اختياري)','cphone'),fld('اسم الكود (اختياري)','code'));
+ const s3=el('button','gold','إنشاء الكود');s3.type='submit';b.appendChild(s3);
+ const list=el('div'),load=async()=>{const c=await api('/api/admin/codes');list.innerHTML='';list.appendChild(table(['الكود','الخصم','المتبقي','ينتهي','لعميل',''],c.map(x=>{const d=el('button','bad','مسح');d.onclick=async()=>{await api('/api/admin/code-del',{code:x.code});load()};return [x.code,x.value,x.uses,x.expires||'—',x.phone||'عام',d]})))};
+ b.onsubmit=async e=>{e.preventDefault();const g=n=>b.elements[n].value;try{const j=await api('/api/admin/code',{value:g('value'),uses:g('uses'),days:g('days'),phone:g('cphone'),code:g('code')});m.textContent='تم إنشاء الكود: '+j.code;load()}catch(x){m.textContent=x.message}};
+ const log=el('div'),loadLog=async()=>{const l=await api('/api/admin/plog');log.innerHTML='';log.appendChild(table(['العميل','النقاط','ملاحظة','التاريخ'],l.map(x=>[x.name+'\n'+x.phone,(x.delta>0?'+':'')+x.delta,x.note||'',x.created.slice(0,16)])));log.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')};
+ v.append(m,dl,a,al,b,el('h3','','الأكواد الحالية'),list,el('h3','','آخر حركات النقاط'),log);load();loadLog()}
+async function products(){
+ const v=$('v'),m=msgEl();let ps=await api('/api/admin/products'),eid=0,img='';
+ const f=el('form','panel'),t=el('h3','','إضافة عطر جديد'),sec=el('select'),gen=el('select');
+ sec.add(new Option('ديزاينر','designer'));sec.add(new Option('نيش','niche'));Object.entries(L).forEach(([k,n])=>gen.add(new Option(n,k)));
+ const pg=el('div','pg4');['10','30','50','100'].forEach(s=>pg.appendChild(fld('سعر '+s+' مل','p'+s,'number')));
+ const fl=el('input');fl.type='file';fl.accept='image/*';const pv=el('img','pvi');pv.hidden=true;const actf=el('input');actf.type='checkbox';actf.checked=true;actf.style.width='auto';
+ const ok=el('button','gold','حفظ'),cn=el('button','','إلغاء');ok.type='submit';cn.type='button';cn.hidden=true;
+ f.append(t,fld('اسم العطر','name'),el('label','','القسم'),sec,el('label','','الفئة'),gen,pg,el('label','','صورة العطر (اختياري، تقدر تضيفها بعدين من الجدول)'),fl,pv,el('label','','ظاهر في المتجر'),actf,ok,cn);
+ const reset=()=>{eid=0;img='';f.reset();t.textContent='إضافة عطر جديد';cn.hidden=true;pv.hidden=true;actf.checked=true};cn.onclick=reset;
+ fl.onchange=async()=>{if(!fl.files[0])return;img=await shrink(fl.files[0]);pv.src=img;pv.hidden=false};
+ f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/product',{id:eid,name:g('name'),cat:'perfume',section:sec.value,gender:gen.value,p10:g('p10'),p30:g('p30'),p50:g('p50'),p100:g('p100'),image:img,active:actf.checked});m.textContent='تم الحفظ. بيظهر في المتجر فورًا.';reset();ps=await api('/api/admin/products');draw()}catch(x){m.textContent=x.message}};
+ const bk=el('form','panel'),bs=el('select'),bg=el('div','pg4'),bb=el('button','gold','تطبيق');bs.add(new Option('كل عطور الديزاينر','designer'));bs.add(new Option('كل عطور النيش','niche'));
+ ['10','30','50','100'].forEach(s=>bg.appendChild(fld('سعر '+s+' مل','b'+s,'number')));bb.type='button';
+ bk.append(el('h3','','تعديل أسعار قسم كامل'),el('p','mut','اكتب الأسعار اللي عايز تطبّقها على كل عطور القسم. الخانات الفاضية بتتساب زي ما هي.'),bs,bg,bb);
+ arm(bb,'اضغط تاني للتأكيد',async()=>{const g=n=>bk.elements[n].value;try{const r=await api('/api/admin/prices-bulk',{section:bs.value,p10:g('b10'),p30:g('b30'),p50:g('b50'),p100:g('b100')});m.textContent='اتعدّل '+r.count+' عطر';bk.reset();ps=await api('/api/admin/products');draw()}catch(x){m.textContent=x.message}});
+ const q1=el('input'),fs=el('select'),fg=el('select'),fn=el('select'),bar=el('div','flt'),cnt=el('p','mut'),list=el('div');q1.placeholder='ابحث باسم العطر...';
+ [[fs,[['all','كل الأقسام'],['designer','ديزاينر'],['niche','نيش']]],[fg,[['all','كل الفئات'],['m','رجالي'],['f','حريمي'],['u','يونيسكس']]],[fn,[['all','الكل'],['noimg','من غير صورة'],['noprice','من غير سعر'],['hidden','المخفي']]]].forEach(([s,o])=>o.forEach(([k,n])=>s.add(new Option(n,k))));
+ bar.append(q1,fs,fg,fn);[q1,fs,fg,fn].forEach(x=>{x.oninput=x.onchange=()=>draw()});
+ const draw=()=>{
+  const tx=q1.value.trim(),rows=ps.filter(p=>(!tx||p.name.includes(tx))&&(fs.value=='all'||p.section==fs.value)&&(fg.value=='all'||p.gender==fg.value)&&(fn.value=='all'||(fn.value=='noimg'&&!p.img)||(fn.value=='noprice'&&!(p.p10||p.p30||p.p50||p.p100))||(fn.value=='hidden'&&!p.active)));
+  cnt.textContent=rows.length+' عطر من '+ps.length;list.innerHTML='';
+  list.appendChild(table(['صورة','العطر','الأسعار (10 / 30 / 50 / 100)','ظاهر','إجراءات'],rows.map(p=>{
+   const th=el('div','th'),fi=el('input'),wrap=el('div','row');fi.type='file';fi.accept='image/*';fi.hidden=true;
+   if(p.img){const i=el('img');i.src='/img/'+p.id+'?t='+(p.v||0);th.appendChild(i)}else th.textContent='📷';
+   th.title='دوس لرفع أو تغيير الصورة';th.onclick=()=>fi.click();
+   fi.onchange=async()=>{if(!fi.files[0])return;try{await api('/api/admin/product-image',{id:p.id,image:await shrink(fi.files[0])});p.img=1;p.v=Date.now();m.textContent='اتحطت صورة '+p.name;draw()}catch(x){m.textContent=x.message}};
+   wrap.append(th,fi);
+   if(p.img){const r=el('button','bad','مسح');arm(r,'تأكيد',async()=>{await api('/api/admin/product-image',{id:p.id,remove:1});p.img=0;draw()});wrap.appendChild(r)}
+   const ks=['p10','p30','p50','p100'],ins=ks.map(k=>{const i=el('input','pin');i.type='number';i.min=0;i.value=p[k]||'';i.placeholder=k.slice(1);return i}),pr=el('div','rown'),cb=el('input'),acts=el('div','row');
+   ins.forEach(i=>pr.appendChild(i));cb.type='checkbox';cb.checked=!!p.active;cb.style.cssText='width:auto;margin:0';
+   const sv=el('button','gold','حفظ');sv.onclick=async()=>{try{await api('/api/admin/product-quick',{id:p.id,p10:ins[0].value,p30:ins[1].value,p50:ins[2].value,p100:ins[3].value,active:cb.checked});ks.forEach((k,n)=>{p[k]=+ins[n].value||null});p.active=cb.checked?1:0;m.textContent='اتحفظ: '+p.name}catch(x){m.textContent=x.message}};
+   const ed=el('button','','تعديل كامل');ed.onclick=()=>{eid=p.id;f.elements.name.value=p.name;sec.value=p.section;gen.value=p.gender;ks.forEach(k=>{f.elements[k].value=p[k]||''});actf.checked=!!p.active;img='';if(p.img){pv.src='/img/'+p.id+'?t='+(p.v||0);pv.hidden=false}else pv.hidden=true;t.textContent='تعديل: '+p.name;cn.hidden=false;f.scrollIntoView({behavior:'smooth'})};
+   const del=el('button','bad','حذف');arm(del,'تأكيد الحذف',async()=>{await api('/api/admin/product-del',{id:p.id});ps=ps.filter(x=>x.id!=p.id);draw()});
+   acts.append(sv,ed,del);return [wrap,p.name+'\n'+(p.section=='niche'?'نيش':'ديزاينر')+' — '+L[p.gender],pr,cb,acts]})));
+  list.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')};
+ v.append(m,f,bk,el('h3','','كل العطور'),bar,cnt,list);draw()}
+async function settings(){
+ const v=$('v'),m=msgEl(),s=await api('/api/admin/settings'),f=el('form','panel');
+ f.append(el('h3','','إعدادات التواصل والدفع'),el('p','mut','الأرقام دي بتظهر في الموقع وفي رسالة الطلب وتعليمات الدفع.'),fld('رقم واتساب المتجر (بصيغة دولية: 201XXXXXXXXX)','wa'),fld('رقم الهاتف للاتصال','phone'),fld('رقم المحفظة الإلكترونية','wallet'),fld('حساب إنستا باي','insta'));
+ ['wa','phone','wallet','insta'].forEach(k=>{f.elements[k].value=s[k]||''});
+ const b=el('button','gold','حفظ الإعدادات');b.type='submit';f.appendChild(b);
+ f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/settings',{wa:g('wa'),phone:g('phone'),wallet:g('wallet'),insta:g('insta')});m.textContent='اتحفظت. بتظهر في الموقع فورًا.'}catch(x){m.textContent=x.message}};
+ v.append(m,f)}
+async function account(){const f=el('form','panel'),m=el('p');m.id='msg';
+ f.append(el('h3','','تغيير كلمة سر الأدمن'),fld('كلمة السر الحالية','old','password'),fld('كلمة السر الجديدة (10 حروف على الأقل)','nw','password'),fld('تأكيد كلمة السر الجديدة','nw2','password'));
+ const b=el('button','gold','تغيير');b.type='submit';f.appendChild(b);
+ f.onsubmit=async e=>{e.preventDefault();if(f.nw.value!=f.nw2.value){m.textContent='التأكيد مش مطابق';return}try{await api('/api/admin/password',{old:f.old.value,new:f.nw.value});f.reset();m.textContent='تم تغيير كلمة السر.'}catch(x){m.textContent=x.message}};
+ $('v').append(m,f)}
+boot();
+</script></body></html>

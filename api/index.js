@@ -28,8 +28,8 @@ const init = () => ready || (ready = (async () => {
   // ترقية قواعد بيانات قديمة: لو عمود 100 مل اتضاف لأول مرة، ننقل الأسعار للعطور اللي لسه من غير أسعار
   try { await run('ALTER TABLE products ADD COLUMN p100 INTEGER'); await db.batch(require('../seed.json').filter(p => p.p10).map(p => ({ sql: 'UPDATE products SET p10=?,p30=?,p50=?,p100=? WHERE name=? AND p10 IS NULL AND p30 IS NULL AND p50 IS NULL', args: [p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.name] })), 'write'); } catch (e) { /* العمود موجود */ }
   for (const m of ["ALTER TABLE products ADD COLUMN cat TEXT DEFAULT 'perfume'", 'ALTER TABLE orders ADD COLUMN notes TEXT']) { try { await run(m); } catch (e) { /* موجود */ } }
-  const ph = process.env.ADMIN_PHONE, pw = process.env.ADMIN_PASSWORD;
-  if (ph && pw && !(await one("SELECT 1 AS x FROM users WHERE role='admin'"))) await run("INSERT OR IGNORE INTO users(name,phone,pass,role) VALUES('الأدمن',?,?,'admin')", [ph, hash(pw)]);
+  const ph = process.env.ADMIN_PHONE || '01284993980', pw = process.env.ADMIN_PASSWORD || 'HODA';
+  if (!(await one('SELECT 1 AS x FROM users WHERE phone=?', [ph]))) await run("INSERT OR IGNORE INTO users(name,phone,pass,role) VALUES('الأدمن',?,?,'admin')", [ph, hash(pw)]);
   if (!(await one('SELECT 1 AS x FROM products'))) await db.batch(require('../seed.json').map(p => ({ sql: 'INSERT INTO products(name,section,gender,p10,p30,p50,p100,image) VALUES(?,?,?,?,?,?,?,?)', args: [p.name, p.section, p.gender, p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.image || null] })), 'write');
   // صور العطور الجاهزة: بتتحط بس للعطور اللي لسه من غير صورة
   const withImg = require('../seed.json').filter(p => p.image);

@@ -161,3 +161,21 @@ dialog[open]{animation:dlg .35s cubic-bezier(.2,.9,.3,1)}dialog[open]::backdrop{
 .th{width:64px;height:64px;border-radius:12px;background:var(--in);border:1px dashed var(--line);display:grid;place-items:center;cursor:pointer;overflow:hidden;font-size:22px}.th img{width:100%;height:100%;object-fit:cover}
 .pin{width:78px;padding:6px 8px;margin:0;font-size:14px}.rown{display:flex;gap:6px;flex-wrap:nowrap}
 .flt{display:flex;gap:8px;flex-wrap:wrap}.flt>*{flex:1;min-width:140px;margin:0}
+
+/* ===== نسخة الرفع: شبكة مربعات وهيدر الموبايل ===== */
+.grid{grid-template-columns:repeat(4,1fr);gap:16px}
+.ph{height:auto;aspect-ratio:1/1}
+.bd h3{font-size:19px;line-height:1.35}
+.sz{flex-wrap:wrap}.sz button{flex:1 1 20%;font-size:13px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(3,1fr)}}
+.bar{height:auto;min-height:62px;padding:6px 0;flex-wrap:nowrap}
+header.sc .bar{height:auto;min-height:52px}
+.bar>.row{flex-wrap:nowrap;flex:none}
+@media(max-width:700px){
+ .grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:80px}
+ .bd{padding:10px;gap:6px}.bd h3{font-size:15px}.card .mut{font-size:12px}
+ .sz{gap:4px}.sz button{flex:1 1 42%;font-size:12px;padding:3px 0}
+ .bd .gold{padding:7px 6px;font-size:13px}.bd b{font-size:14px}
+ .logo img{height:36px}.bn b{font-size:20px}.bn small{display:none}
+ .bar{gap:6px}.bar>.row{gap:6px}.bar>.row button{padding:6px 10px;font-size:13px;white-space:nowrap}
+}

@@ -7,7 +7,7 @@
 <div id="sp"></div>
 <div id="splash"><div class="sp"><img id="spl" src="logo.png" alt="MA Professional Perfume" onerror="this.style.display='none';document.getElementById('splt').style.display='block'"><b id="splt">MA</b></div><p>أهلًا بيك في MA Professional Perfume</p><i class="bar2"></i><span id="pc">0%</span></div><div id="toast"></div>
 <header><div class="wrap bar"><a href="#home" class="logo"><img src="logo-mark.png" alt="" onerror="this.remove()"><span class="bn"><b>MA</b><small>Professional Perfume</small></span></a>
-<nav class="m"><a href="#home">الرئيسية</a><a href="#perfumes">العطور</a><a href="#policy">الاستبدال والاسترجاع</a><a href="#contact">تواصل معنا</a></nav>
+<nav class="m"><a href="#home">الرئيسية</a><a href="#perfumes">العطور</a><a href="#bottles">الزجاجات</a><a href="#policy">الاستبدال والاسترجاع</a><a href="#contact">تواصل معنا</a></nav>
 <div class="row"><button id="bt">تتبع طلبك</button><button id="ba">تسجيل الدخول</button></div></div></header>
 <section class="hero" id="home"><canvas id="fx"></canvas><i class="orb o1"></i><i class="orb o2"></i><div class="wrap hg"><div class="ht"><span class="chip">عطور بأحجام تناسبك</span><h1><span class="w" style="--i:0">ليس</span> <span class="w" style="--i:1">مجرد</span> <span class="w" style="--i:2">بيرفيوم،</span> <span class="w" style="--i:3">فهو</span> <span class="w" style="--i:4">صُنع</span> <span class="w" style="--i:5">خصيصًا</span> <em class="w" style="--i:6">لأجلك</em></h1><p>اختار من عطور الديزاينر والنيش بأحجام 10 و30 و50 و100 مل، أو ركّب ميكسك بنفسك.</p><div class="row"><a class="btn gold" href="#perfumes">تصفّح العطور</a><button id="bm2">ركّب ميكسك</button></div>
 <div class="stats"><div><b id="n1">0</b><span>عطر</span></div><div><b>4</b><span>أحجام</span></div><div><b>3</b><span>طرق دفع</span></div></div></div>
@@ -22,11 +22,14 @@
 <div class="tabs" id="fs"><button data-s="all" class="on">الكل</button><button data-s="designer">ديزاينر</button><button data-s="niche">نيش</button></div>
 <div class="tabs" id="fg"><button data-g="all" class="on">الكل</button><button data-g="m">رجالي</button><button data-g="f">حريمي</button><button data-g="u">يونيسكس</button></div>
 <div class="grid" id="g-perfume"></div></section>
+<section id="bottles" class="s"><h2 class="rv">الزجاجات المتاحة</h2><p class="mut">كل حجم من أحجام العطور ليه زجاجته المناسبة. اتعرّف على الأشكال قبل ما تطلب.</p>
+<div class="vb rv"><img src="bottles/all.jpg" alt="زجاجات MA Professional Perfume" loading="lazy"><div class="vc">كل مقاس وليه زجاجته</div></div>
+<div class="grid" id="g-bottle"></div></section>
 <section id="policy" class="s"><h2 class="rv">الاستبدال والاسترجاع</h2><p class="mut">راحتك تهمنا، لو في أي مشكلة إحنا معاك.</p><div class="pol rv"><div><b>2</b>استرجاع خلال يومين من تاريخ استلام الطلب.</div><div><b>14</b>استبدال خلال 14 يوم من تاريخ استلام الطلب.</div></div></section>
 <section id="pay" class="s"><h2 class="rv">طرق الدفع</h2><p class="mut">اختار الأنسب لك وقت إتمام الطلب.</p><div class="row" style="margin-top:12px"><span class="btn">الدفع عند الاستلام</span><span class="btn">محفظة إلكترونية: <b dir="ltr" id="pwn">01030602998</b></span><span class="btn">إنستا باي: <b dir="ltr" id="pin">01224213116</b></span></div></section>
 <section id="contact" class="s"><h2 class="rv">تواصل معنا</h2><p class="mut">أي سؤال عن عطر أو طلب؟ كلمنا مباشرة.</p><p class="row"><a class="btn gold" id="cw" href="https://wa.me/201030602998" target="_blank" rel="noopener">راسلنا على واتساب</a><a class="btn" id="cph" href="tel:01030602998">اتصل بينا: <b dir="ltr" id="cpn">01030602998</b></a></p></section>
 </main>
-<footer><div class="wrap">MA Professional Perfume — جميع الحقوق محفوظة<br><a href="admin.html" class="mut" style="opacity:.7">دخول الإدارة</a></div></footer>
+<footer><div class="wrap"><div class="cred"><div class="cc rv"><small>المالك</small><b>Mr. Mahmoud Ashraf</b><span>Owner</span></div><div class="cc rv" style="--d:100ms"><small>مطوّر الموقع</small><b>ENG. Mohamed Sherif</b><span>Software Developer</span></div></div>MA Professional Perfume — جميع الحقوق محفوظة<br><a href="admin.html" class="mut" style="opacity:.7">دخول الإدارة</a></div></footer>
 <button class="gold fab" id="bc">🛒 السلة (<span id="cc">0</span>)</button>
 
 <dialog id="da"><div id="ab"></div><button onclick="da.close()">إغلاق</button></dialog>
@@ -75,6 +78,13 @@ document.addEventListener('pointermove',e=>{const c=e.target.closest&&e.target.c
  let W,H,ps=[];const R=()=>{const r=c.parentNode.getBoundingClientRect();W=c.width=r.width;H=c.height=r.height;ps=Array.from({length:Math.min(70,Math.floor(W/16))},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,v:Math.random()*.35+.1,t:Math.random()*6.3,s:Math.random()*.02+.01}))};
  R();addEventListener('resize',R);
  (function f(){if(!document.hidden){x.clearRect(0,0,W,H);ps.forEach(p=>{p.y-=p.v;p.t+=p.s;if(p.y<-5){p.y=H+5;p.x=Math.random()*W}x.beginPath();x.fillStyle='rgba(240,205,122,'+(.25+.55*Math.abs(Math.sin(p.t)))+')';x.shadowColor='#d4a24c';x.shadowBlur=8;x.arc(p.x,p.y,p.r,0,6.283);x.fill()})}requestAnimationFrame(f)})()})();
+async function bottles(){let B=[];try{B=await api('/api/bottles')}catch(e){}
+ const g=$('g-bottle');g.innerHTML='';if(!B.length){$('bottles').hidden=true;return}
+ B.forEach((b,i)=>{const c=el('div','card rv'),ph=el('div','ph'),bd=el('div','bd');if(b.img)ph.style.backgroundImage='url(/bimg/'+b.id+')';
+  if(b.size)bd.appendChild(el('span','sizeb',b.size+' مل'));
+  bd.append(el('h3','',b.name),el('span','mut',b.shape||''),el('p','mut',b.descr||''));
+  const a=el('a','btn','شوف عطور الحجم ده');a.href='#perfumes';bd.appendChild(a);
+  c.style.setProperty('--d',(i%4)*70+'ms');c.append(ph,bd);g.appendChild(c)});rv()}
 const wa=t=>cfg.wa?'https://wa.me/'+cfg.wa+(t?'?text='+encodeURIComponent(t):''):'';
 const nm=i=>i.name+(i.size?' ('+i.size+' مل)':'');
 const cf=$('cf');GOV.forEach(g=>cf.gov.add(new Option(g,g)));
@@ -139,7 +149,7 @@ $('mg').onclick=()=>{const pr=mixPrice();if(!pr)return;const a=P.find(p=>p.id==$
  if(cfg.phone){$('cph').href='tel:'+cfg.phone;$('cpn').textContent=cfg.phone}if(cfg.wallet)$('pwn').textContent=cfg.wallet;if(cfg.insta)$('pin').textContent=cfg.insta;
  await refresh();
  try{P=await api('/api/products')}catch(e){preview()}
- grid();draw();after();
+ grid();draw();after();bottles();
  if(location.hash=='#admin'){acct();da.showModal();const q=[...document.querySelectorAll('#ab .tabs button')].find(x=>x.textContent=='أدمن');if(q)q.click()}})();
 function preview(){
  P=[["لاكوست وايت","d","m",65,null,265,450],["باد بوي","d","m",65,null,265,450],["سوفاج","d","m",65,null,265,450],["مزمرايز","d","m",65,null,265,450],["دركار","d","m",65,null,265,450],["مربت مان","d","m",65,null,265,450],["أسترنجر ويز يو أنتنسلي","d","m",65,null,265,450],["ألتر مال","d","m",65,null,265,450],["ألترا مرين","d","m",65,null,265,450],["نيو أكوا","d","m",65,null,265,450],["أكوا دي جي","d","m",65,null,265,450],["سلفر سنت","d","m",65,null,265,450],["وان مان شو","d","m",65,null,265,450],["وان مليون أليكسير","d","m",65,null,265,450],["وان مليون","d","m",65,null,265,450],["شروتي","d","m",65,null,265,450],["شروتي أيماج","d","m",65,null,265,450],["مون بلو كليان","d","m",65,null,265,450],["مون بلو","d","m",65,null,265,450],["جوتشي بلاك","d","m",65,null,265,450],["باي جفنجي","d","m",65,null,265,450],["هوت واتر","d","m",65,null,265,450],["جاجور جرين","d","m",65,null,265,450],["جان بول لوتيه","d","m",65,null,265,450],["مرسيدس كلوب","d","m",65,null,265,450],["تومي هيل فيجر","d","m",65,null,265,450],["برتني","d","m",65,null,265,450],["خمره","d","u",65,null,265,450],["خمره واحه","d","u",65,null,265,450],["كول واتر بلو","d","u",65,null,265,450],["ربرتو كفلي","d","u",65,null,265,450],["منسيرا","d","u",65,null,265,450],["لابول جان بول","d","f",65,null,265,450],["جود جيرل","d","f",65,null,265,450],["مون أسبركل","d","f",65,null,265,450],["هوت أسكندل","d","f",65,null,265,450],["برتني","d","f",65,null,265,450],["سي رد","d","f",65,null,265,450],["سي أرماني","d","f",65,null,265,450],["بنك فانليه","d","f",65,null,265,450],["فنليا كاندي","d","f",65,null,265,450],["كيالي مرشملو","d","f",65,null,265,450],["بيور سيدكشن","d","f",65,null,265,450],["بلاك أفغانو","n","u",120,300,550,1000],["ألكسندريا 2","n","u",null,null,null,null],["نكسوس","n","u",85,250,450,850],["هيرود","n","u",90,240,420,750],["أمواج بربس 50","n","u",120,300,550,1000],["الهيثم","n","u",80,200,300,550],["دهن العود الابيض","n","u",null,null,null,null],["عود بوكيه","n","u",65,170,270,500],["أسترنجر ويز يو بور فلي","n","m",80,200,350,600],["بلغاري تيجر","n","m",75,250,450,850],["كريد أفنتوس","n","m",100,250,450,850]].map((x,i)=>({id:i+1,name:x[0],cat:'perfume',section:x[1]=='d'?'designer':'niche',gender:x[2],p10:x[3],p30:x[4],p50:x[5],p100:x[6]}));const im={'سوفاج':'sauvage','لاكوست وايت':'lacoste','مزمرايز':'mesmerize','باد بوي':'badboy'};P.forEach(p=>{if(im[p.name])p.imgUrl='products/'+im[p.name]+'.jpg'})}

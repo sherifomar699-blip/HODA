@@ -17,7 +17,7 @@ const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=nu
 const fld=(lbl,n,type='text',extra={})=>{const l=el('label','',lbl),i=el('input');i.name=n;i.type=type;Object.assign(i,extra);l.appendChild(i);return l};
 const table=(h,rows)=>{const w=el('div','scroll'),t=el('table'),tr=el('tr');h.forEach(x=>tr.appendChild(el('th','',x)));t.appendChild(tr);
  rows.forEach(r=>{const q=el('tr');r.forEach(c=>{const d=el('td');c instanceof Node?d.appendChild(c):d.textContent=c;q.appendChild(d)});t.appendChild(q)});w.appendChild(t);return w};
-const TABS={orders,stats,customers,bonus,products,settings,account};const NAMES={orders:'الطلبات',stats:'جرد المبيعات',customers:'العملاء',bonus:'البونص والأكواد',products:'المنتجات والأسعار',settings:'إعدادات الموقع',account:'حسابي'};
+const TABS={orders,stats,customers,bonus,products,bottles,settings,account};const NAMES={orders:'الطلبات',stats:'جرد المبيعات',customers:'العملاء',bonus:'البونص والأكواد',products:'المنتجات والأسعار',bottles:'الزجاجات',settings:'إعدادات الموقع',account:'حسابي'};
 function show(k){document.querySelectorAll('#tb button').forEach(b=>b.className=b.dataset.k==k?'on':'');$('v').innerHTML='';TABS[k]().catch(e=>$('v').textContent=e.message)}
 async function boot(){try{const j=await api('/api/me');if(!j.user||j.user.role!='admin')throw 0;$('lg').hidden=true;$('app').hidden=false;
  const tb=$('tb');tb.innerHTML='';Object.keys(NAMES).forEach(k=>{const b=el('button','',NAMES[k]);b.dataset.k=k;b.onclick=()=>show(k);tb.appendChild(b)});show('orders')}catch(e){location.replace('index.html#admin')}}
@@ -114,6 +114,22 @@ async function settings(){
  const b=el('button','gold','حفظ الإعدادات');b.type='submit';f.appendChild(b);
  f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/settings',{wa:g('wa'),phone:g('phone'),wallet:g('wallet'),insta:g('insta')});m.textContent='اتحفظت. بتظهر في الموقع فورًا.'}catch(x){m.textContent=x.message}};
  v.append(m,f)}
+async function bottles(){
+ const v=$('v'),m=msgEl();let bs=await api('/api/admin/bottles'),eid=0,img='';
+ const f=el('form','panel'),t=el('h3','','إضافة زجاجة جديدة'),pv=el('img','pvi'),fl=el('input'),actf=el('input');
+ pv.hidden=true;fl.type='file';fl.accept='image/*';actf.type='checkbox';actf.checked=true;actf.style.width='auto';
+ const ok=el('button','gold','حفظ'),cn=el('button','','إلغاء');ok.type='submit';cn.type='button';cn.hidden=true;
+ f.append(t,fld('اسم الزجاجة','name'),fld('الحجم المناسب بالمل (مثلًا 10 أو 100)','size'),fld('الشكل / النوع (سطر قصير)','shape'),fld('الوصف','descr'),fld('الترتيب (رقم صغير يظهر الأول)','sort','number'),el('label','','صورة الزجاجة'),fl,pv,el('label','','ظاهرة في الموقع'),actf,ok,cn);
+ const reset=()=>{eid=0;img='';f.reset();t.textContent='إضافة زجاجة جديدة';cn.hidden=true;pv.hidden=true;actf.checked=true};cn.onclick=reset;
+ fl.onchange=async()=>{if(!fl.files[0])return;img=await shrink(fl.files[0],800);pv.src=img;pv.hidden=false};
+ const list=el('div'),draw=()=>{list.innerHTML='';list.appendChild(table(['صورة','الزجاجة','الحجم','ظاهرة','إجراءات'],bs.map(b=>{
+  const th=el('div','th');if(b.img){const i=el('img');i.src='/bimg/'+b.id+'?t='+Date.now();th.appendChild(i)}else th.textContent='📷';
+  const ed=el('button','','تعديل'),del=el('button','bad','حذف'),acts=el('div','row');
+  ed.onclick=()=>{eid=b.id;const g=n=>f.elements[n];g('name').value=b.name;g('size').value=b.size||'';g('shape').value=b.shape||'';g('descr').value=b.descr||'';g('sort').value=b.sort||0;actf.checked=!!b.active;img='';if(b.img){pv.src='/bimg/'+b.id+'?t='+Date.now();pv.hidden=false}else pv.hidden=true;t.textContent='تعديل: '+b.name;cn.hidden=false;f.scrollIntoView({behavior:'smooth'})};
+  arm(del,'تأكيد الحذف',async()=>{await api('/api/admin/bottle-del',{id:b.id});bs=bs.filter(x=>x.id!=b.id);draw()});
+  acts.append(ed,del);return [th,b.name+'\n'+(b.shape||''),b.size?b.size+' مل':'—',b.active?'نعم':'مخفية',acts]})));list.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')};
+ f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/bottle',{id:eid,name:g('name'),size:g('size'),shape:g('shape'),descr:g('descr'),sort:g('sort'),active:actf.checked,image:img});m.textContent='تم الحفظ. بيظهر في الموقع فورًا.';reset();bs=await api('/api/admin/bottles');draw()}catch(x){m.textContent=x.message}};
+ v.append(m,f,list);draw()}
 async function account(){const f=el('form','panel'),m=el('p');m.id='msg';
  f.append(el('h3','','تغيير كلمة سر الأدمن'),fld('كلمة السر الحالية','old','password'),fld('كلمة السر الجديدة (10 حروف على الأقل)','nw','password'),fld('تأكيد كلمة السر الجديدة','nw2','password'));
  const b=el('button','gold','تغيير');b.type='submit';f.appendChild(b);

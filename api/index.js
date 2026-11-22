@@ -19,7 +19,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS codes(code TEXT PRIMARY KEY,value INTEGER,uses INTEGER,expires TEXT,phone TEXT,label TEXT)',
   'CREATE TABLE IF NOT EXISTS plog(id INTEGER PRIMARY KEY,user_id INTEGER,delta INTEGER,note TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP)',
   'CREATE TABLE IF NOT EXISTS attempts(k TEXT,t INTEGER)',
-  'CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT)'
+  'CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT)',
+  'CREATE TABLE IF NOT EXISTS bottles(id INTEGER PRIMARY KEY,name TEXT UNIQUE,size TEXT,shape TEXT,descr TEXT,image TEXT,sort INTEGER DEFAULT 0,active INTEGER DEFAULT 1)'
 ];
 const VERSION = '2026-11-22-dedupe-v2';
 const dedupe = async () => {
@@ -50,6 +51,7 @@ const init = () => ready || (ready = (async () => {
     const need = await q('SELECT name FROM products WHERE image IS NULL AND name IN (' + withImg.map(() => '?').join(',') + ')', withImg.map(p => p.name));
     for (const r of need) await run('UPDATE products SET image=? WHERE name=? AND image IS NULL', [withImg.find(p => p.name === r.name).image, r.name]);
   }
+  if (!(await one('SELECT 1 AS x FROM bottles'))) await db.batch(require('../bottles.json').map(b => ({ sql: 'INSERT OR IGNORE INTO bottles(name,size,shape,descr,image,sort) VALUES(?,?,?,?,?,?)', args: [b.name, b.size, b.shape, b.descr, b.image || null, b.sort || 0] })), 'write');
   await run('DELETE FROM attempts WHERE t<?', [Date.now() - 6e5]);
 })().catch(e => { ready = null; throw e; }));
 
@@ -248,6 +250,27 @@ on('POST', '/api/admin/points-all', 1, async (req, res, b) => {
   await db.batch(us.flatMap(u => [{ sql: 'UPDATE users SET points=points+? WHERE id=?', args: [d, u.id] }, { sql: 'INSERT INTO plog(user_id,delta,note) VALUES(?,?,?)', args: [u.id, d, note] }]), 'write');
   J(res, 200, { ok: 1, count: us.length });
 });
+
+// ---------- الزجاجات ----------
+on('GET', '/api/bottles', 0, async (req, res) => J(res, 200, await q('SELECT id,name,size,shape,descr,image IS NOT NULL AS img FROM bottles WHERE active=1 ORDER BY sort,id')));
+on('GET', '/bimg/(\\d+)', 0, async (req, res, b, m) => {
+  const r = await one('SELECT image FROM bottles WHERE id=?', [+m[1]]);
+  const x = r && r.image && /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(r.image);
+  if (!x) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'content-type': x[1], 'cache-control': 'public,max-age=600' }); res.end(Buffer.from(x[2], 'base64'));
+});
+on('GET', '/api/admin/bottles', 1, async (req, res) => J(res, 200, await q('SELECT id,name,size,shape,descr,sort,active,image IS NOT NULL AS img FROM bottles ORDER BY sort,id')));
+on('POST', '/api/admin/bottle', 1, async (req, res, b) => {
+  const name = String(b.name || '').trim().slice(0, 80); if (!name) return J(res, 400, { error: 'اكتب اسم الزجاجة' });
+  const f = [name, String(b.size || '').replace(/[^\d ./]/g, '').slice(0, 20), String(b.shape || '').trim().slice(0, 120), String(b.descr || '').trim().slice(0, 400), +b.sort | 0, b.active ? 1 : 0];
+  const img = typeof b.image === 'string' && b.image.length < 7e5 && /^data:image\/(jpeg|png|webp);base64,/.test(b.image) ? b.image : null;
+  try {
+    if (b.id) { await run('UPDATE bottles SET name=?,size=?,shape=?,descr=?,sort=?,active=? WHERE id=?', [...f, +b.id]); if (img) await run('UPDATE bottles SET image=? WHERE id=?', [img, +b.id]); }
+    else await run('INSERT INTO bottles(name,size,shape,descr,sort,active,image) VALUES(?,?,?,?,?,?,?)', [...f, img]);
+  } catch (e) { return J(res, 409, { error: 'فيه زجاجة بنفس الاسم' }); }
+  J(res, 200, { ok: 1 });
+});
+on('POST', '/api/admin/bottle-del', 1, async (req, res, b) => { await run('DELETE FROM bottles WHERE id=?', [+b.id]); J(res, 200, { ok: 1 }); });
 
 on('GET', '/api/version', 0, async (req, res) => J(res, 200, { v: VERSION }));
 on('POST', '/api/admin/dedupe', 1, async (req, res) => {

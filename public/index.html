@@ -108,7 +108,7 @@ function draw(){$('cc').textContent=cart.reduce((a,i)=>a+i.q,0);const l=$('cl');
  cart.forEach((i,k)=>{const r=el('div','row');r.append(el('span','',nm(i)+' × '+i.q+' = '+i.price*i.q+' ج.م'));const m=el('button','','−'),p=el('button','','+');m.onclick=()=>{if(--i.q<1)cart.splice(k,1);draw()};p.onclick=()=>{i.q++;draw()};r.append(m,p);l.appendChild(r)});
  $('ct').textContent=cart.length?'الإجمالي: '+total()+' ج.م':'السلة فاضية';cf.hidden=!cart.length}
 async function refresh(){try{const j=await api('/api/me');me=j.user;if(me)me.orders=j.orders}catch(e){me=null}$('ba').textContent=me?'حسابي':'تسجيل الدخول'}
-$('bc').onclick=()=>{draw();$('cd').hidden=true;$('cl').hidden=false;$('ct').hidden=false;$('bn').hidden=!me;if(me){$('pm').textContent='(متاح '+me.points+')';cf.name.value=cf.name.value||me.name;cf.phone.value=cf.phone.value||me.phone}payNote();$('msg').textContent='';dc.showModal()};
+$('bc').onclick=()=>{draw();$('cd').hidden=true;$('cl').hidden=false;$('ct').hidden=false;$('bn').hidden=!me||me.role=='admin';if(me&&me.role!='admin'){$('pm').textContent='(متاح '+me.points+')';cf.name.value=cf.name.value||me.name;cf.phone.value=cf.phone.value||me.phone}payNote();$('msg').textContent='';dc.showModal()};
 cf.onsubmit=async e=>{e.preventDefault();$('msg').textContent='...';
  try{const j=await api('/api/order',{items:cart.map(i=>i.mix?{mix:i.mix,size:i.size,q:i.q}:{id:i.id,size:i.size,q:i.q}),name:cf.name.value,phone:cf.phone.value,wa:cf.wa.value,gov:cf.gov.value,addr:cf.addr.value,notes:cf.notes.value,pay:cf.pay.value,points:+cf.points.value||0,code:cf.code.value});
   const lines=cart.map(i=>'- '+nm(i)+' × '+i.q);last=j.code;

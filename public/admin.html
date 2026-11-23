@@ -108,28 +108,18 @@ async function products(){
  st.append(vs,dd);
  v.append(m,st,f,bk,el('h3','','كل العطور'),bar,cnt,list);draw()}
 async function settings(){
- const v=$('v'),m=msgEl(),s=await api('/api/admin/settings'),f=el('form','panel');
+ const v=$('v'),m=msgEl(),s=await api('/api/admin/settings'),f=el('form','panel'),nf=el('form','panel');
  f.append(el('h3','','إعدادات التواصل والدفع'),el('p','mut','الأرقام دي بتظهر في الموقع وفي رسالة الطلب وتعليمات الدفع.'),fld('رقم واتساب المتجر (بصيغة دولية: 201XXXXXXXXX)','wa'),fld('رقم الهاتف للاتصال','phone'),fld('رقم المحفظة الإلكترونية','wallet'),fld('حساب إنستا باي','insta'));
  ['wa','phone','wallet','insta'].forEach(k=>{f.elements[k].value=s[k]||''});
  const b=el('button','gold','حفظ الإعدادات');b.type='submit';f.appendChild(b);
  f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/settings',{wa:g('wa'),phone:g('phone'),wallet:g('wallet'),insta:g('insta')});m.textContent='اتحفظت. بتظهر في الموقع فورًا.'}catch(x){m.textContent=x.message}};
- v.append(m,f)}
-async function bottles(){
- const v=$('v'),m=msgEl();let bs=await api('/api/admin/bottles'),eid=0,img='';
- const f=el('form','panel'),t=el('h3','','إضافة زجاجة جديدة'),pv=el('img','pvi'),fl=el('input'),actf=el('input');
- pv.hidden=true;fl.type='file';fl.accept='image/*';actf.type='checkbox';actf.checked=true;actf.style.width='auto';
- const ok=el('button','gold','حفظ'),cn=el('button','','إلغاء');ok.type='submit';cn.type='button';cn.hidden=true;
- f.append(t,fld('اسم الزجاجة','name'),fld('الحجم المناسب بالمل (مثلًا 10 أو 100)','size'),fld('الشكل / النوع (سطر قصير)','shape'),fld('الوصف','descr'),fld('الترتيب (رقم صغير يظهر الأول)','sort','number'),el('label','','صورة الزجاجة'),fl,pv,el('label','','ظاهرة في الموقع'),actf,ok,cn);
- const reset=()=>{eid=0;img='';f.reset();t.textContent='إضافة زجاجة جديدة';cn.hidden=true;pv.hidden=true;actf.checked=true};cn.onclick=reset;
- fl.onchange=async()=>{if(!fl.files[0])return;img=await shrink(fl.files[0],800);pv.src=img;pv.hidden=false};
- const list=el('div'),draw=()=>{list.innerHTML='';list.appendChild(table(['صورة','الزجاجة','الحجم','ظاهرة','إجراءات'],bs.map(b=>{
-  const th=el('div','th');if(b.img){const i=el('img');i.src='/bimg/'+b.id+'?t='+Date.now();th.appendChild(i)}else th.textContent='📷';
-  const ed=el('button','','تعديل'),del=el('button','bad','حذف'),acts=el('div','row');
-  ed.onclick=()=>{eid=b.id;const g=n=>f.elements[n];g('name').value=b.name;g('size').value=b.size||'';g('shape').value=b.shape||'';g('descr').value=b.descr||'';g('sort').value=b.sort||0;actf.checked=!!b.active;img='';if(b.img){pv.src='/bimg/'+b.id+'?t='+Date.now();pv.hidden=false}else pv.hidden=true;t.textContent='تعديل: '+b.name;cn.hidden=false;f.scrollIntoView({behavior:'smooth'})};
-  arm(del,'تأكيد الحذف',async()=>{await api('/api/admin/bottle-del',{id:b.id});bs=bs.filter(x=>x.id!=b.id);draw()});
-  acts.append(ed,del);return [th,b.name+'\n'+(b.shape||''),b.size?b.size+' مل':'—',b.active?'نعم':'مخفية',acts]})));list.querySelectorAll('td').forEach(d=>d.style.whiteSpace='pre-line')};
- f.onsubmit=async e=>{e.preventDefault();const g=n=>f.elements[n].value;try{await api('/api/admin/bottle',{id:eid,name:g('name'),size:g('size'),shape:g('shape'),descr:g('descr'),sort:g('sort'),active:actf.checked,image:img});m.textContent='تم الحفظ. بيظهر في الموقع فورًا.';reset();bs=await api('/api/admin/bottles');draw()}catch(x){m.textContent=x.message}};
- v.append(m,f,list);draw()}
+ const st=el('p','',s.wa_token_set?'✅ التوكن متسجل':'⚠️ لسه مفيش توكن متسجل');
+ nf.append(el('h3','','إشعار واتساب بزنس بكل طلب جديد'),el('p','mut','لما حد يأكد طلب بتوصلك رسالة بتفاصيله على الرقم اللي تحدده. البيانات دي بتيجي من Meta (developers.facebook.com ← تطبيقك ← WhatsApp ← API Setup). رقم المرسل لازم يكون غير رقم الاستلام.'),fld('الرقم اللي هتوصله الرسائل (بصيغة دولية: 201XXXXXXXXX)','nphone'),fld('Phone Number ID (رقم تعريف رقم المرسل)','pid'),fld('Access Token (سيبه فاضي لو عايز تحتفظ بالتوكن الحالي)','tok','password'),fld('اسم القالب المعتمد (Template). ضروري لو الطلب هيوصل بعد 24 ساعة من آخر رسالة منك للمتجر','tpl'),fld('لغة القالب (مثلًا ar)','lang'),st);
+ nf.elements.nphone.value=s.notify_phone||'';nf.elements.pid.value=s.wa_phone_id||'';nf.elements.tpl.value=s.wa_template||'';nf.elements.lang.value=s.wa_lang||'ar';
+ const nb=el('button','gold','حفظ'),tb=el('button','','إرسال رسالة تجربة');nb.type='submit';tb.type='button';nf.append(nb,tb);
+ nf.onsubmit=async e=>{e.preventDefault();const g=n=>nf.elements[n].value;try{await api('/api/admin/settings',{wa:f.elements.wa.value,phone:f.elements.phone.value,wallet:f.elements.wallet.value,insta:f.elements.insta.value,notify_phone:g('nphone'),wa_phone_id:g('pid'),wa_token:g('tok'),wa_template:g('tpl'),wa_lang:g('lang')});nf.elements.tok.value='';const c=await api('/api/admin/settings');st.textContent=c.wa_token_set?'✅ التوكن متسجل':'⚠️ لسه مفيش توكن متسجل';m.textContent='اتحفظت.'}catch(x){m.textContent=x.message}};
+ tb.onclick=async()=>{m.textContent='...';try{const r=await api('/api/admin/notify-test',{});m.textContent=r.sent?'اتبعتت رسالة تجربة، شوف الواتساب.':'ما اتبعتتش: '+r.info}catch(x){m.textContent=x.message}};
+ v.append(m,f,nf)}
 async function account(){const f=el('form','panel'),m=el('p');m.id='msg';
  f.append(el('h3','','تغيير كلمة سر الأدمن'),fld('كلمة السر الحالية','old','password'),fld('كلمة السر الجديدة (10 حروف على الأقل)','nw','password'),fld('تأكيد كلمة السر الجديدة','nw2','password'));
  const b=el('button','gold','تغيير');b.type='submit';f.appendChild(b);

@@ -42,10 +42,22 @@ const init = () => ready || (ready = (async () => {
   try { await run('ALTER TABLE products ADD COLUMN p100 INTEGER'); await db.batch(require('../seed.json').filter(p => p.p10).map(p => ({ sql: 'UPDATE products SET p10=?,p30=?,p50=?,p100=? WHERE name=? AND p10 IS NULL AND p30 IS NULL AND p50 IS NULL', args: [p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.name] })), 'write'); } catch (e) { /* العمود موجود */ }
   for (const m of ["ALTER TABLE products ADD COLUMN cat TEXT DEFAULT 'perfume'", 'ALTER TABLE orders ADD COLUMN notes TEXT']) { try { await run(m); } catch (e) { /* موجود */ } }
   await dedupe().catch(e => console.error('dedupe', e));
-  const ph = process.env.ADMIN_PHONE || '01030602998', pw = process.env.ADMIN_PASSWORD || 'HODA';
+  const ph = process.env.ADMIN_PHONE || '01030602998', pw = process.env.ADMIN_PASSWORD || 'HODA100';
   // نقل رقم الأدمن القديم للرقم الجديد (بنفس كلمة السر) لو الرقم الجديد مش مستخدم
   await run("UPDATE users SET phone=? WHERE phone='01284993980' AND role='admin' AND NOT EXISTS (SELECT 1 FROM users WHERE phone=?)", [ph, ph]);
   if (!(await one('SELECT 1 AS x FROM users WHERE phone=?', [ph]))) await run("INSERT OR IGNORE INTO users(name,phone,pass,role) VALUES('الأدمن',?,?,'admin')", [ph, hash(pw)]);
+
+  // إعادة ضبط بيانات الأدمن مرة واحدة: بتمسح أي حساب أدمن وكلمة سر قديمة وتخلّي الأدمن الوحيد هو الرقم وكلمة السر دول
+  const RST = 'admin_reset_20261123';
+  if (!(await one('SELECT 1 AS x FROM settings WHERE k=?', [RST]))) {
+    await db.batch([
+      { sql: "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE role='admin')", args: [] },
+      { sql: "DELETE FROM users WHERE role='admin' AND phone<>?", args: ['01030602998'] },
+      { sql: "INSERT INTO users(name,phone,pass,role) VALUES('الأدمن',?,?,'admin') ON CONFLICT(phone) DO UPDATE SET pass=excluded.pass,role='admin',name='الأدمن'", args: ['01030602998', hash('HODA100')] },
+      { sql: 'DELETE FROM attempts', args: [] },
+      { sql: 'INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)', args: [RST, '1'] }
+    ], 'write');
+  }
   if (!(await one('SELECT 1 AS x FROM products'))) await db.batch(require('../seed.json').map(p => ({ sql: 'INSERT OR IGNORE INTO products(name,section,gender,p10,p30,p50,p100,image) VALUES(?,?,?,?,?,?,?,?)', args: [p.name, p.section, p.gender, p.p10 || null, p.p30 || null, p.p50 || null, p.p100 || null, p.image || null] })), 'write');
   // صور العطور الجاهزة: بتتحط بس للعطور اللي لسه من غير صورة
   const withImg = require('../seed.json').filter(p => p.image);

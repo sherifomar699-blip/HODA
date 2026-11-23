@@ -221,13 +221,20 @@ on('GET', '/api/config', 0, async (req, res) => J(res, 200, await cfgAll()));
 
 // ---------- إشعار واتساب بزنس (Meta Cloud API) لصاحب المتجر عند كل طلب ----------
 const waCfg = async () => {
-  const m = Object.fromEntries((await q("SELECT k,v FROM settings WHERE k IN ('notify_phone','wa_phone_id','wa_token','wa_template','wa_lang')")).map(r => [r.k, r.v]));
-  return { id: m.wa_phone_id || process.env.WA_PHONE_NUMBER_ID || '', token: m.wa_token || process.env.WA_TOKEN || '', tpl: m.wa_template || process.env.WA_TEMPLATE || '', lang: m.wa_lang || process.env.WA_TEMPLATE_LANG || 'ar', to: String(m.notify_phone || process.env.NOTIFY_PHONE || DEF.wa).replace(/\D/g, ''), ver: process.env.WA_API_VERSION || 'v25.0' };
+  const m = Object.fromEntries((await q("SELECT k,v FROM settings WHERE k IN ('notify_phone','wa_phone_id','wa_token','wa_template','wa_lang','notify_key')")).map(r => [r.k, r.v]));
+  return { id: m.wa_phone_id || process.env.WA_PHONE_NUMBER_ID || '', token: m.wa_token || process.env.WA_TOKEN || '', tpl: m.wa_template || process.env.WA_TEMPLATE || '', lang: m.wa_lang || process.env.WA_TEMPLATE_LANG || 'ar', cmb: m.notify_key || process.env.CALLMEBOT_KEY || '', to: String(m.notify_phone || process.env.NOTIFY_PHONE || DEF.wa).replace(/\D/g, ''), ver: process.env.WA_API_VERSION || 'v25.0' };
 };
 const notifyOwner = async text => {
   try {
     const c = await waCfg();
-    if (!c.id || !c.token) return { sent: false, status: 0, info: 'بيانات واتساب بزنس لسه مش متسجلة' };
+    if (!c.id || !c.token) {
+      if (!c.cmb) return { sent: false, status: 0, info: 'مفيش بيانات واتساب بزنس ولا مفتاح CallMeBot متسجلين' };
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 4500);
+      try {
+        const r = await fetch('https://api.callmebot.com/whatsapp.php?phone=' + c.to + '&text=' + encodeURIComponent(text) + '&apikey=' + encodeURIComponent(c.cmb), { signal: ctl.signal });
+        return { sent: r.ok, status: r.status, info: (await r.text()).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) };
+      } finally { clearTimeout(t); }
+    }
     const body = c.tpl
       ? { messaging_product: 'whatsapp', to: c.to, type: 'template', template: { name: c.tpl, language: { code: c.lang }, components: [{ type: 'body', parameters: [{ type: 'text', text: text.replace(/\s*\n\s*/g, ' | ').replace(/ {2,}/g, ' ').slice(0, 900) }] }] } }
       : { messaging_product: 'whatsapp', to: c.to, type: 'text', text: { body: text.slice(0, 3500) } };
@@ -256,7 +263,7 @@ on('POST', '/api/admin/password', 1, async (req, res, b) => {
 // ---------- إدارة الموقع من لوحة الأدمن ----------
 on('GET', '/api/admin/settings', 1, async (req, res) => {
   const c = await waCfg();
-  J(res, 200, { ...(await cfgAll()), notify_phone: c.to, wa_phone_id: c.id, wa_template: c.tpl, wa_lang: c.lang, wa_token_set: !!c.token });
+  J(res, 200, { ...(await cfgAll()), notify_phone: c.to, wa_phone_id: c.id, wa_template: c.tpl, wa_lang: c.lang, wa_token_set: !!c.token, cmb_set: !!c.cmb });
 });
 on('POST', '/api/admin/settings', 1, async (req, res, b) => {
   const d = x => String(x || '').replace(/\D/g, '').slice(0, 20), t = x => String(x || '').trim().slice(0, 60), v = { wa: d(b.wa), phone: d(b.phone), wallet: t(b.wallet), insta: t(b.insta) };
@@ -267,6 +274,7 @@ on('POST', '/api/admin/settings', 1, async (req, res, b) => {
   if (b.wa_template !== undefined) await up('wa_template', String(b.wa_template).trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 60));
   if (b.wa_lang !== undefined) await up('wa_lang', /^[a-z]{2}(_[A-Z]{2})?$/.test(String(b.wa_lang).trim()) ? String(b.wa_lang).trim() : 'ar');
   if (String(b.wa_token || '').trim()) await up('wa_token', String(b.wa_token).trim().slice(0, 600));
+  if (String(b.notify_key || '').trim()) await up('notify_key', String(b.notify_key).trim().slice(0, 100));
   J(res, 200, { ok: 1, ...(await cfgAll()) });
 });
 on('POST', '/api/admin/notify-test', 1, async (req, res) => J(res, 200, await notifyOwner('✅ رسالة تجربة من متجر MA Professional Perfume. لو وصلتك يبقى إشعارات الطلبات شغالة.')));
